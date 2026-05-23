@@ -107,8 +107,6 @@
   }
   .icon-btn:hover { color: var(--text-1); }
   .icon-btn svg { width: 19px; height: 19px; }
-  .tool-btn.mj { color: var(--accent); }
-  .tool-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
   /* ================= SUBNAV (desktop) ================= */
   .subnav {
@@ -122,17 +120,7 @@
   .subnav a.active { color: var(--text-1); font-weight: 500; border-bottom-color: var(--accent); }
   .subnav .dot { color: var(--text-3); }
 
-  /* ================= TOAST + INFO BANNER ================= */
-  .toast {
-    position: fixed; top: 64px; left: 50%; transform: transl(-50%, -12px); z-index: 300;
-    background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border);
-    font-size: 12px; padding: 8px 16px; border-radius: var(--radius-md);
-    opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
-    transform: translateX(-50%) translateY(-12px);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
+  /* ================= INFO BANNER ================= */
   .info-banner {
     position: fixed; top: 64px; left: 50%; transform: translateX(-50%) translateY(-12px); z-index: 290;
     display: none; align-items: center; gap: 10px;
@@ -160,6 +148,29 @@
   .controls { padding: 0 16px 140px; }
   .col-divider { display: none; }
   .desktop-output { display: none; }
+
+  /* ================= TOOL SELECTOR (two-tab segmented) ================= */
+  .tool-tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 4px; margin-bottom: 20px;
+  }
+  .tool-tab {
+    height: 48px; border-radius: var(--radius-sm);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    color: var(--text-3); border: 1px solid transparent; background: transparent;
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .tool-tab:hover { color: var(--text-2); }
+  .tool-tab svg { width: 15px; height: 15px; }
+  .tool-tab .tt-label { font-size: 12px; font-weight: 500; }
+  .tool-tab .tt-sub { font-size: 10px; color: var(--text-3); display: none; }
+  .tool-tab.active {
+    background: var(--bg); border-color: var(--border-focus);
+    color: var(--text-1); box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .tool-tab.active svg { color: var(--accent); }
+  .tool-tab.active .tt-sub { display: block; }
 
   /* ================= ACCORDIONS ================= */
   .section { border-top: 1px solid var(--border); }
@@ -358,7 +369,7 @@
     .subnav { display: flex; }
     .bottom-nav { display: none; }
     .sticky-bar, .sheet, .sheet-overlay { display: none !important; }
-    .toast, .info-banner { top: 104px; }
+    .info-banner { top: 104px; }
 
     .builder-grid { display: grid; grid-template-columns: 52% 1px 48%; align-items: start; }
     .controls { padding: 24px; }
@@ -383,9 +394,6 @@
   <header class="header">
     <div class="wordmark">Junk Journal Prompt Builder</div>
     <div class="header-actions">
-      <button class="icon-btn tool-btn mj" id="toolBtn" title="Midjourney" aria-label="Toggle AI tool mode">
-        <i data-lucide="wand-2"></i><span class="tool-dot"></span>
-      </button>
       <button class="icon-btn" id="themeBtn" aria-label="Toggle dark and light mode"><i data-lucide="moon"></i></button>
     </div>
   </header>
@@ -399,8 +407,7 @@
     <a href="#" data-screen="guide">Style Guide</a>
   </nav>
 
-  <!-- toast + info banner -->
-  <div class="toast" id="toast"></div>
+  <!-- info banner -->
   <div class="info-banner" id="infoBanner"><span>Preset loaded. Customize above or copy as-is.</span><button id="infoClose" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
 
   <main>
@@ -414,6 +421,19 @@
       <div class="builder-grid">
         <!-- CONTROLS -->
         <div class="controls">
+          <!-- TOOL SELECTOR -->
+          <div class="tool-tabs" role="tablist" aria-label="Target AI tool">
+            <button class="tool-tab active" id="ttMidjourney" role="tab" aria-selected="true" data-tool="midjourney">
+              <i data-lucide="wand-2"></i>
+              <span class="tt-label">Midjourney</span>
+              <span class="tt-sub">MJ parameters included</span>
+            </button>
+            <button class="tool-tab" id="ttOther" role="tab" aria-selected="false" data-tool="other">
+              <i data-lucide="layers"></i>
+              <span class="tt-label">Other Tools</span>
+              <span class="tt-sub">ChatGPT · Flux · Firefly · DALL·E</span>
+            </button>
+          </div>
           <!-- SECTION 1 -->
           <div class="section open" data-section="1">
             <div class="acc-head">
@@ -701,26 +721,22 @@
 
     /* ---------- TOOL MODE ---------- */
     var TOOL_KEY="jj_tool";
-    function setTool(t,toast){
+    function setTool(t){
       tool=t;
       try{ localStorage.setItem(TOOL_KEY,t); }catch(e){}
       var mj=t==="midjourney";
-      var btn=$("toolBtn");
-      btn.innerHTML=mj?'<i data-lucide="wand-2"></i><span class="tool-dot"></span>':'<i data-lucide="layers"></i>';
-      btn.classList.toggle("mj",mj);
-      btn.title=mj?"Midjourney":"Other Tools";
+      $("ttMidjourney").classList.toggle("active",mj);
+      $("ttMidjourney").setAttribute("aria-selected",mj?"true":"false");
+      $("ttOther").classList.toggle("active",!mj);
+      $("ttOther").setAttribute("aria-selected",!mj?"true":"false");
       $("section4").classList.toggle("hidden-sec",!mj);
       $("toolPill").textContent=mj?"Midjourney":"Other Tools — ChatGPT · Flux · Firefly · DALL-E · Ideogram";
-      $("modeNote").textContent="Copying in "+(mj?"Midjourney":"Other Tools")+" format — change in the toolbar above.";
-      renderIcons();
+      $("modeNote").innerHTML='Copying in <span style="color:var(--accent-text)">'+(mj?"Midjourney":"Other Tools")+'</span> format — switch on the Builder tab.';
       updateOutput(true);
       renderPresets();
-      if(toast) showToast(mj?"Midjourney mode":"Other Tools mode");
     }
-    $("toolBtn").addEventListener("click",function(){ setTool(tool==="midjourney"?"other":"midjourney",true); });
-
-    var toastT=null;
-    function showToast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); if(toastT) clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); },2000); }
+    $("ttMidjourney").addEventListener("click",function(){ setTool("midjourney"); });
+    $("ttOther").addEventListener("click",function(){ setTool("other"); });
 
     /* ---------- INPUTS ---------- */
     ["productType","subject","setting","era","customDetail","basicStyle","artStyle","texture","vibe","palette","customColors","background","version","ar","exclude"].forEach(function(id){
@@ -892,7 +908,7 @@
     renderPresets();
     renderGuide();
     renderHistory();
-    setTool(savedTool,false);
+    setTool(savedTool);
     showScreen("builder");
     updateOutput(false);
     renderIcons();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jj-v3-1';
+const CACHE_NAME = 'jj-v3-2';
 
 // Font URL must match the <link> in index.html exactly so it precaches correctly.
 const FONTS_URL = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&display=swap';
