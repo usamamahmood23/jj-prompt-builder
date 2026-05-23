@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Junk Journal AI Prompt Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<!-- PWA Meta Tags -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JJ Prompts">
+<meta name="application-name" content="JJ Prompts">
+<meta name="msapplication-TileColor" content="#111110">
+<meta name="theme-color" content="#FAFAF8">
+
+<!-- Manifest -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- Favicons -->
+<link rel="icon" href="./icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+
+<style>
+  /* ================= THEME TOKENS ================= */
+  :root {
+    --bg: #111110;
+    --bg-2: #1A1917;
+    --bg-3: #222120;
+    --border: #2E2C2A;
+    --border-hover: #3C3A37;
+    --border-focus: #8B7355;
+    --text-1: #F2EDE4;
+    --text-2: #A09080;
+    --text-3: #5A5248;
+    --accent: #C49A5A;
+    --accent-dim: rgba(196, 154, 90, 0.12);
+    --accent-text: #C49A5A;
+    --danger: #A05040;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --eph-bg: rgba(160,80,80,0.12); --eph-fg: #C08585;
+    --dig-bg: rgba(80,120,100,0.14); --dig-fg: #6FA98A;
+    --bkm-bg: rgba(80,80,160,0.16); --bkm-fg: #8B8BD0;
+  }
+  [data-theme="light"] {
+    --bg: #FAFAF8;
+    --bg-2: #F4F0EB;
+    --bg-3: #EDE8E0;
+    --border: #DDD8CF;
+    --border-hover: #CFC9BD;
+    --border-focus: #8B7355;
+    --text-1: #1A1816;
+    --text-2: #6B6055;
+    --text-3: #A09080;
+    --accent: #8B6030;
+    --accent-dim: rgba(139, 96, 48, 0.10);
+    --accent-text: #8B6030;
+    --danger: #8B3020;
+    --eph-bg: rgba(139,60,60,0.10); --eph-fg: #8B3C3C;
+    --dig-bg: rgba(50,100,75,0.10); --dig-fg: #356048;
+    --bkm-bg: rgba(70,70,130,0.10); --bkm-fg: #4A4A8B;
+  }
+
+  /* ================= BASE ================= */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    padding-top: 56px;
+  }
+  h1, h2, h3, .serif { font-family: "Cormorant Garamond", Georgia, serif; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  button:active { transform: scale(0.97); transition: transform 0.15s ease; }
+  a { color: inherit; text-decoration: none; }
+  input, select, textarea { font-family: inherit; }
+  ::selection { background: var(--accent-dim); }
+
+  /* ================= HEADER ================= */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  .wordmark { font-family: "Cormorant Garamond", Georgia, serif; font-size: 18px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+  .header-actions { display: flex; align-items: center; gap: 4px; }
+  .icon-btn {
+    position: relative;
+    width: 40px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-2); border-radius: var(--radius-sm);
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+  .icon-btn:hover { color: var(--text-1); }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .tool-btn.mj { color: var(--accent); }
+  .tool-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  /* ================= SUBNAV (desktop) ================= */
+  .subnav {
+    display: none; position: fixed; top: 56px; left: 0; right: 0; height: 40px; z-index: 99;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    align-items: center; justify-content: center; gap: 12px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  .subnav a { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); padding: 10px 2px; border-bottom: 2px solid transparent; transition: color .2s ease, border-color .2s ease; }
+  .subnav a:hover { color: var(--text-1); }
+  .subnav a.active { color: var(--text-1); font-weight: 500; border-bottom-color: var(--accent); }
+  .subnav .dot { color: var(--text-3); }
+
+  /* ================= TOAST + INFO BANNER ================= */
+  .toast {
+    position: fixed; top: 64px; left: 50%; transform: transl(-50%, -12px); z-index: 300;
+    background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border);
+    font-size: 12px; padding: 8px 16px; border-radius: var(--radius-md);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+    transform: translateX(-50%) translateY(-12px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .info-banner {
+    position: fixed; top: 64px; left: 50%; transform: translateX(-50%) translateY(-12px); z-index: 290;
+    display: none; align-items: center; gap: 10px;
+    background: var(--accent-dim); color: var(--accent-text);
+    border: 1px solid var(--border-focus); border-radius: var(--radius-md);
+    font-size: 11px; padding: 8px 12px; max-width: calc(100% - 24px);
+    opacity: 0; transition: opacity .2s ease, transform .2s ease;
+  }
+  .info-banner.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+  .info-banner button { color: var(--accent-text); display: inline-flex; }
+  .info-banner svg { width: 14px; height: 14px; }
+
+  /* ================= MAIN / SCREENS ================= */
+  main { max-width: 1180px; margin: 0 auto; }
+  .screen { display: none; }
+  .screen.active { display: block; animation: screenIn .2s ease; }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+  .page-title { text-align: center; padding: 24px 16px 16px; }
+  .page-title h2 { margin: 0; font-size: 26px; font-style: italic; font-weight: 600; color: var(--text-1); }
+  .page-title p { margin: 6px 0 0; font-size: 12px; color: var(--text-3); }
+
+  /* ================= BUILDER GRID ================= */
+  .builder-grid { display: block; }
+  .controls { padding: 0 16px 140px; }
+  .col-divider { display: none; }
+  .desktop-output { display: none; }
+
+  /* ================= ACCORDIONS ================= */
+  .section { border-top: 1px solid var(--border); }
+  .section.hidden-sec { display: none; }
+  .acc-head {
+    display: flex; align-items: center; min-height: 48px; cursor: pointer; user-select: none; gap: 8px;
+  }
+  .acc-num { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--text-3); }
+  .acc-title { flex: 1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); }
+  .sec-reset { font-size: 11px; color: var(--text-3); padding: 8px; transition: color .2s ease; }
+  .sec-reset:hover { color: var(--danger); }
+  .acc-chevron { color: var(--text-3); display: inline-flex; transition: transform .28s ease; }
+  .acc-chevron svg { width: 18px; height: 18px; }
+  .section.open .acc-chevron { transform: rotate(180deg); }
+  .acc-body { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .28s ease, opacity .28s ease; }
+  .section.open .acc-body { max-height: 1500px; opacity: 1; }
+  .acc-inner { padding: 12px 0 20px; }
+
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  .field > label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); margin-bottom: 8px; }
+
+  select, .text-input {
+    width: 100%; height: 48px;
+    background: var(--bg-3); color: var(--text-1);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 14px; transition: border-color .2s ease, background-color .2s ease;
+  }
+  .text-input { padding: 0 14px; }
+  select {
+    padding: 0 40px 0 14px; appearance: none; -webkit-appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235A5248' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right 14px center;
+  }
+  select:hover, .text-input:hover { border-color: var(--border-hover); }
+  select:focus, .text-input:focus { outline: none; border-color: var(--border-focus); }
+  .text-input::placeholder { color: var(--text-3); }
+  .field-hint { font-size: 11px; color: var(--text-3); font-style: italic; margin-top: 8px; }
+
+  /* slider */
+  .slider-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .slider-label-row label { margin: 0; }
+  .s-badge { font-size: 12px; color: var(--accent-text); background: var(--accent-dim); border-radius: var(--radius-sm); padding: 4px 8px; font-variant-numeric: tabular-nums; }
+  .slider-wrap { display: flex; align-items: center; height: 44px; }
+  input[type="range"] {
+    width: 100%; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px;
+    background: var(--border); outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; }
+  input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; }
+
+  /* toggle rows */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; height: 48px; }
+  .toggle-row .tl { font-size: 14px; color: var(--text-1); }
+  .toggle-row .tl .sub { color: var(--text-3); font-size: 12px; }
+  .toggle { width: 44px; height: 24px; border-radius: 999px; background: var(--bg-3); border: 1px solid var(--border); position: relative; transition: background-color .2s ease, border-color .2s ease; flex-shrink: 0; padding: 0; }
+  .toggle .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-3); transition: transform .2s ease, background-color .2s ease; }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle.on .knob { transform: translateX(20px); background: #fff; }
+
+  /* ================= OUTPUT (shared text) ================= */
+  .out-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-bottom: 12px; }
+  .prompt-text { font-family: "Cormorant Garamond", Georgia, serif; font-size: 16px; line-height: 1.8; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+  .prompt-text.empty { color: var(--text-3); font-style: italic; font-size: 14px; }
+
+  .btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; transition: background-color .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease; }
+  .btn svg { width: 16px; height: 16px; }
+  .btn-primary { background: var(--accent); color: var(--bg); height: 48px; }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-2); height: 44px; }
+  .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-1); }
+
+  /* history (shared) */
+  .history { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .history-head { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); padding: 8px 0; }
+  .history-head svg { width: 16px; height: 16px; color: var(--text-3); transition: transform .25s ease; }
+  .history.open .history-head svg { transform: rotate(180deg); }
+  .history-body { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  .history.open .history-body { max-height: 520px; overflow-y: auto; }
+  .hist-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border-radius: var(--radius-sm); transition: background-color .15s ease; }
+  .hist-item:hover { background: var(--bg-3); }
+  .hist-text { flex: 1; font-size: 12px; color: var(--text-2); word-break: break-word; }
+  .hist-load { font-size: 11px; color: var(--text-2); border: 1px solid var(--border); border-radius: var(--radius-sm); height: 36px; padding: 0 12px; flex-shrink: 0; }
+  .hist-load:hover { border-color: var(--border-hover); color: var(--text-1); }
+  .hist-empty { font-size: 12px; color: var(--text-3); padding: 10px 2px; }
+  .clear-hist { font-size: 11px; color: var(--text-3); padding: 8px 2px 2px; }
+  .clear-hist:hover { text-decoration: underline; color: var(--danger); }
+
+  /* ================= MOBILE STICKY BAR ================= */
+  .sticky-bar {
+    position: fixed; bottom: 60px; left: 0; right: 0; height: 64px; z-index: 100;
+    background: var(--bg-2); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  }
+  .bar-left { flex: 1; overflow: hidden; cursor: pointer; }
+  .bar-label { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); }
+  .bar-preview { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .15s ease; margin-top: 2px; }
+  .bar-preview.placeholder { color: var(--text-3); font-style: italic; }
+  .bar-copy { background: var(--accent); color: var(--bg); height: 36px; padding: 0 16px; font-size: 12px; font-weight: 500; border-radius: var(--radius-md); flex-shrink: 0; }
+  .bar-copy:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ================= MOBILE OUTPUT SHEET ================= */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility .3s ease; }
+  .sheet-overlay.open { opacity: 1; visibility: visible; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 82vh; z-index: 210;
+    background: var(--bg-2); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transform: translateY(100%); transition: transform .3s ease;
+    display: flex; flex-direction: column;
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-head { position: relative; padding: 10px 0 6px; flex-shrink: 0; }
+  .sheet-handle { width: 32px; height: 4px; border-radius: 4px; background: var(--border); margin: 0 auto; }
+  .sheet-close { position: absolute; top: 0; right: 8px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
+  .sheet-close svg { width: 20px; height: 20px; }
+  .sheet-body { padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; flex: 1; }
+  .sheet-body .btn { margin-top: 12px; }
+  .sheet-body .prompt-text { padding: 4px 0 8px; }
+
+  /* ================= PRESETS ================= */
+  .mode-note { text-align: center; font-size: 11px; color: var(--text-3); padding: 0 16px 4px; }
+  .filter-bar { padding: 12px 16px 0; }
+  .cat-tabs { display: flex; gap: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; border-bottom: 1px solid var(--border); }
+  .cat-tabs::-webkit-scrollbar { height: 0; }
+  .cat-tab { white-space: nowrap; height: 40px; padding: 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); border-bottom: 2px solid transparent; transition: color .2s ease, border-color .2s ease; }
+  .cat-tab.active { color: var(--text-1); border-bottom-color: var(--accent); }
+  .preset-search { margin-top: 14px; }
+  .preset-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+  .preset-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; transition: border-color .2s ease; }
+  .preset-card:hover { border-color: var(--border-hover); }
+  .preset-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .preset-name { font-family: "Cormorant Garamond", Georgia, serif; font-size: 15px; font-weight: 600; color: var(--text-1); }
+  .badge { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: var(--radius-sm); white-space: nowrap; flex-shrink: 0; }
+  .badge-jp { background: var(--accent-dim); color: var(--accent-text); }
+  .badge-eph { background: var(--eph-bg); color: var(--eph-fg); }
+  .badge-dig { background: var(--dig-bg); color: var(--dig-fg); }
+  .badge-bkm { background: var(--bkm-bg); color: var(--bkm-fg); }
+  .preset-preview { font-size: 12px; color: var(--text-3); font-style: italic; line-height: 1.6; margin: 10px 0; flex: 1; }
+  .preset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .btn-sm { height: 36px; padding: 0 14px; font-size: 12px; border-radius: var(--radius-sm); width: auto; }
+  .empty-state { text-align: center; color: var(--text-3); font-size: 13px; padding: 48px 16px; }
+
+  /* ================= STYLE GUIDE ================= */
+  .guide-tabs { display: flex; gap: 16px; overflow-x: auto; border-bottom: 1px solid var(--border); padding: 0 16px; margin-bottom: 8px; }
+  .guide-tabs::-webkit-scrollbar { height: 0; }
+  .guide-tab { white-space: nowrap; height: 40px; padding: 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); border-bottom: 2px solid transparent; transition: color .2s ease, border-color .2s ease; }
+  .guide-tab.active { color: var(--text-1); border-bottom-color: var(--accent); }
+  .guide-pane { display: none; padding: 8px 16px 24px; }
+  .guide-pane.active { display: block; animation: screenIn .2s ease; }
+  .grow { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; flex-wrap: wrap; }
+  .grow:nth-child(odd) { background: var(--bg-2); }
+  .gname { font-size: 13px; font-weight: 500; color: var(--text-1); min-width: 130px; }
+  .garrow { color: var(--text-3); }
+  .gdesc { font-size: 12px; color: var(--text-2); flex: 1; min-width: 160px; }
+  .palette-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .pal-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
+  .pal-dots { display: flex; gap: 5px; margin-bottom: 8px; }
+  .pal-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(128,128,128,0.25); }
+  .pal-name { font-family: "Cormorant Garamond", Georgia, serif; font-size: 14px; color: var(--text-1); }
+  .pal-desc { font-size: 12px; color: var(--text-2); margin-top: 6px; }
+  .tip-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; gap: 12px; margin-bottom: 10px; min-height: 64px; }
+  .tip-num { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--accent-dim); color: var(--accent-text); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+  .tip-title { font-size: 13px; font-weight: 500; color: var(--text-1); }
+  .tip-desc { font-size: 12px; color: var(--text-2); margin-top: 4px; line-height: 1.55; }
+
+  /* ================= BOTTOM NAV (mobile) ================= */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; z-index: 110; background: var(--bg); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom, 0px); transition: background-color .2s ease, border-color .2s ease; }
+  .bn-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--text-3); font-size: 10px; transition: color .2s ease; }
+  .bn-tab svg { width: 20px; height: 20px; }
+  .bn-tab.active { color: var(--accent); }
+
+  .footer-note { text-align: center; font-size: 11px; color: var(--text-3); padding: 8px 16px 16px; }
+  .hidden { display: none !important; }
+
+  /* ================= PWA INSTALL BANNER ================= */
+  #install-banner { position: fixed; z-index: 9999; background: var(--bg-2); border: 1px solid var(--border-focus); border-radius: var(--radius-lg); padding: 16px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transition: transform .3s ease, opacity .3s ease; transform: translateY(20px); opacity: 0; }
+  @media (max-width: 767px) { #install-banner { left: 12px; right: 12px; bottom: 136px; } }
+  @media (min-width: 768px) { #install-banner { width: 360px; bottom: 24px; right: 24px; } }
+  #install-banner.visible { display: flex; flex-direction: column; gap: 12px; transform: translateY(0); opacity: 1; }
+  .install-banner-top { display: flex; align-items: center; gap: 12px; position: relative; }
+  .install-banner-icon { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; object-fit: cover; }
+  .install-banner-text h4 { font-size: 13px; font-weight: 500; color: var(--text-1); margin: 0 0 3px; }
+  .install-banner-text p { font-size: 11px; color: var(--text-3); margin: 0; line-height: 1.4; }
+  .install-banner-close { position: absolute; top: -4px; right: -4px; background: none; border: none; cursor: pointer; color: var(--text-3); padding: 4px; display: flex; }
+  .install-banner-close:hover { color: var(--text-2); }
+  .install-banner-actions { display: flex; gap: 8px; }
+  .install-btn-primary { flex: 1; height: 36px; background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+  .install-btn-primary:hover { opacity: 0.85; }
+  .install-btn-ghost { height: 36px; padding: 0 14px; background: none; border: none; color: var(--text-3); font-size: 12px; cursor: pointer; transition: color .15s; }
+  .install-btn-ghost:hover { color: var(--text-2); }
+
+  /* ================= DESKTOP ================= */
+  @media (min-width: 768px) {
+    body { padding-top: 97px; }
+    .subnav { display: flex; }
+    .bottom-nav { display: none; }
+    .sticky-bar, .sheet, .sheet-overlay { display: none !important; }
+    .toast, .info-banner { top: 104px; }
+
+    .builder-grid { display: grid; grid-template-columns: 52% 1px 48%; align-items: start; }
+    .controls { padding: 24px; }
+    .col-divider { display: block; align-self: stretch; background: var(--border); width: 1px; }
+    .desktop-output { display: block; padding: 24px; position: sticky; top: 97px; }
+    .desktop-output .tool-pill { display: inline-block; float: right; background: var(--accent-dim); color: var(--accent-text); font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; max-width: 70%; text-align: right; }
+    .prompt-box { clear: both; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; min-height: 180px; transition: border-color .4s ease; }
+    .prompt-box.prompt-flash { border-color: var(--accent); transition: border-color .15s ease; }
+    .desktop-output .btn-primary { margin-top: 12px; }
+    .desktop-output .btn-ghost { margin-top: 8px; }
+    .preset-grid { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); padding: 18px 24px 24px; }
+    .filter-bar, .guide-tabs, .guide-pane, .mode-note { padding-left: 24px; padding-right: 24px; }
+    .palette-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .btn-sm { width: auto; }
+  }
+  @media (min-width: 1024px) { .controls, .desktop-output { padding: 28px 32px; } }
+</style>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <header class="header">
+    <div class="wordmark">Junk Journal Prompt Builder</div>
+    <div class="header-actions">
+      <button class="icon-btn tool-btn mj" id="toolBtn" title="Midjourney" aria-label="Toggle AI tool mode">
+        <i data-lucide="wand-2"></i><span class="tool-dot"></span>
+      </button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle dark and light mode"><i data-lucide="moon"></i></button>
+    </div>
+  </header>
+
+  <!-- ============ SUBNAV (desktop) ============ -->
+  <nav class="subnav" aria-label="Primary">
+    <a href="#" data-screen="builder" class="active">Builder</a>
+    <span class="dot">·</span>
+    <a href="#" data-screen="presets">Presets</a>
+    <span class="dot">·</span>
+    <a href="#" data-screen="guide">Style Guide</a>
+  </nav>
+
+  <!-- toast + info banner -->
+  <div class="toast" id="toast"></div>
+  <div class="info-banner" id="infoBanner"><span>Preset loaded. Customize above or copy as-is.</span><button id="infoClose" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+
+  <main>
+    <!-- ============ SCREEN 1: BUILDER ============ -->
+    <section id="screen-builder" class="screen active" aria-label="Prompt Builder">
+      <div class="page-title">
+        <h2>Build Your Prompt</h2>
+        <p>Select options. Your prompt builds itself.</p>
+      </div>
+
+      <div class="builder-grid">
+        <!-- CONTROLS -->
+        <div class="controls">
+          <!-- SECTION 1 -->
+          <div class="section open" data-section="1">
+            <div class="acc-head">
+              <span class="acc-num">01</span><span class="acc-title">Composition</span>
+              <button class="sec-reset" data-reset="1">Reset</button>
+              <span class="acc-chevron"><i data-lucide="chevron-down"></i></span>
+            </div>
+            <div class="acc-body"><div class="acc-inner">
+              <div class="field"><label for="productType">Product Type</label><select id="productType"></select></div>
+              <div class="field"><label for="subject">Subject / Theme</label><select id="subject"></select></div>
+              <div class="field"><label for="setting">Setting / Scene</label><select id="setting"></select></div>
+              <div class="field"><label for="era">Era / Period</label><select id="era"></select></div>
+              <div class="field"><label for="customDetail">Custom Detail</label><input type="text" class="text-input" id="customDetail" placeholder="e.g. holding a lantern, surrounded by roses"></div>
+            </div></div>
+          </div>
+          <!-- SECTION 2 -->
+          <div class="section open" data-section="2">
+            <div class="acc-head">
+              <span class="acc-num">02</span><span class="acc-title">Style</span>
+              <button class="sec-reset" data-reset="2">Reset</button>
+              <span class="acc-chevron"><i data-lucide="chevron-down"></i></span>
+            </div>
+            <div class="acc-body"><div class="acc-inner">
+              <div class="field"><label for="basicStyle">Basic Style</label><select id="basicStyle"></select></div>
+              <div class="field"><label for="artStyle">Art Style</label><select id="artStyle"></select></div>
+              <div class="field"><label for="texture">Texture / Feel</label><select id="texture"></select></div>
+              <div class="field"><label for="vibe">Vibe / Mood</label><select id="vibe"></select></div>
+            </div></div>
+          </div>
+          <!-- SECTION 3 -->
+          <div class="section open" data-section="3">
+            <div class="acc-head">
+              <span class="acc-num">03</span><span class="acc-title">Color</span>
+              <button class="sec-reset" data-reset="3">Reset</button>
+              <span class="acc-chevron"><i data-lucide="chevron-down"></i></span>
+            </div>
+            <div class="acc-body"><div class="acc-inner">
+              <div class="field"><label for="palette">Color Palette</label><select id="palette"></select></div>
+              <div class="field"><label for="customColors">Custom Colors</label><input type="text" class="text-input" id="customColors" placeholder="e.g. burgundy, dusty gold, ivory"></div>
+              <div class="field"><label for="background">Background</label><select id="background"></select></div>
+            </div></div>
+          </div>
+          <!-- SECTION 4 -->
+          <div class="section open" data-section="4" id="section4">
+            <div class="acc-head">
+              <span class="acc-num">04</span><span class="acc-title">Parameters</span>
+              <button class="sec-reset" data-reset="4">Reset</button>
+              <span class="acc-chevron"><i data-lucide="chevron-down"></i></span>
+            </div>
+            <div class="acc-body"><div class="acc-inner">
+              <div class="field"><label for="version">Midjourney Version</label><select id="version"></select></div>
+              <div class="field">
+                <div class="slider-label-row"><label for="stylize">Stylize (--s)</label><span class="s-badge" id="stylizeBadge">--s 300</span></div>
+                <div class="slider-wrap"><input type="range" id="stylize" min="0" max="1000" step="50" value="300" aria-label="Stylize"></div>
+              </div>
+              <div class="field"><label for="ar">Aspect Ratio</label><select id="ar"></select>
+                <p class="field-hint">1:1 square · 4:5 journal page · 2:3 bookmark · 9:16 vertical</p>
+              </div>
+              <div class="field">
+                <div class="toggle-row"><span class="tl">--style raw</span><button class="toggle" id="styleRaw" role="switch" aria-checked="false" aria-label="Toggle style raw"><span class="knob"></span></button></div>
+                <div class="toggle-row"><span class="tl">--tile <span class="sub">(seamless patterns)</span></span><button class="toggle" id="tile" role="switch" aria-checked="false" aria-label="Toggle tile"><span class="knob"></span></button></div>
+              </div>
+              <div class="field"><label for="exclude">Exclude (--no)</label><input type="text" class="text-input" id="exclude" placeholder="e.g. text, humans, modern objects"></div>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- DIVIDER -->
+        <div class="col-divider"></div>
+
+        <!-- DESKTOP OUTPUT -->
+        <div class="desktop-output">
+          <span class="tool-pill" id="toolPill">Midjourney</span>
+          <div class="prompt-box" id="promptBox">
+            <div class="out-label">Your Prompt</div>
+            <div class="prompt-text empty" id="outDesktop">Your prompt will appear here as you make selections above...</div>
+          </div>
+          <button class="btn btn-primary" id="copyDesktop" disabled><i data-lucide="copy"></i><span>Copy Prompt</span></button>
+          <button class="btn btn-ghost" id="resetDesktop"><i data-lucide="rotate-ccw"></i><span>Reset All</span></button>
+          <div class="history" id="historyDesktop">
+            <div class="history-head" id="histHeadDesktop" role="button" tabindex="0"><span>History</span><i data-lucide="chevron-down"></i></div>
+            <div class="history-body"><div id="histDesktop"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 2: PRESETS ============ -->
+    <section id="screen-presets" class="screen" aria-label="Preset Prompts">
+      <div class="page-title">
+        <h2>Preset Prompts</h2>
+        <p>Ready-made prompts. Copy or load into the builder.</p>
+      </div>
+      <div class="mode-note" id="modeNote">Copying in Midjourney format — change in the toolbar above.</div>
+      <div class="filter-bar">
+        <div class="cat-tabs" id="catTabs">
+          <button class="cat-tab active" data-cat="All">All</button>
+          <button class="cat-tab" data-cat="Journal Pages">Journal Pages</button>
+          <button class="cat-tab" data-cat="Ephemera &amp; Tags">Ephemera &amp; Tags</button>
+          <button class="cat-tab" data-cat="Digital Papers">Digital Papers</button>
+          <button class="cat-tab" data-cat="Bookmarks">Bookmarks</button>
+        </div>
+        <input type="text" class="text-input preset-search" id="presetSearch" placeholder="Search prompts..." aria-label="Search prompts">
+      </div>
+      <div class="preset-grid" id="presetGrid"></div>
+      <div class="empty-state hidden" id="presetEmpty">No prompts match.</div>
+    </section>
+
+    <!-- ============ SCREEN 3: STYLE GUIDE ============ -->
+    <section id="screen-guide" class="screen" aria-label="Style Guide">
+      <div class="page-title">
+        <h2>Style Guide</h2>
+        <p>Reference for styles, palettes, moods, and tips.</p>
+      </div>
+      <div class="guide-tabs" id="guideTabs">
+        <button class="guide-tab active" data-pane="styles">Art Styles</button>
+        <button class="guide-tab" data-pane="palettes">Color Palettes</button>
+        <button class="guide-tab" data-pane="moods">Moods</button>
+        <button class="guide-tab" data-pane="tips">Pro Tips</button>
+      </div>
+      <div class="guide-pane active" id="paneStyles"></div>
+      <div class="guide-pane" id="panePalettes"></div>
+      <div class="guide-pane" id="paneMoods"></div>
+      <div class="guide-pane" id="paneTips"></div>
+    </section>
+
+    <div class="footer-note">Made for junk journal creators · Works 100% offline</div>
+  </main>
+
+  <!-- ============ MOBILE STICKY BAR ============ -->
+  <div class="sticky-bar" id="stickyBar">
+    <div class="bar-left" id="barLeft">
+      <div class="bar-label">Your Prompt</div>
+      <div class="bar-preview placeholder" id="barPreview">Tap options above to build...</div>
+    </div>
+    <button class="bar-copy" id="copyBar" disabled>Copy</button>
+  </div>
+
+  <!-- ============ MOBILE OUTPUT SHEET ============ -->
+  <div class="sheet-overlay" id="sheetOverlay"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-label="Your prompt">
+    <div class="sheet-head" id="sheetHead">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close" id="sheetClose" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="sheet-body">
+      <div class="out-label">Your Prompt</div>
+      <div class="prompt-text empty" id="outSheet">Your prompt will appear here as you make selections above...</div>
+      <button class="btn btn-primary" id="copySheet" disabled><i data-lucide="copy"></i><span>Copy Prompt</span></button>
+      <button class="btn btn-ghost" id="resetSheet"><i data-lucide="rotate-ccw"></i><span>Reset All</span></button>
+      <div class="history open" id="historySheet">
+        <div class="history-head" id="histHeadSheet" role="button" tabindex="0"><span>History</span><i data-lucide="chevron-down"></i></div>
+        <div class="history-body"><div id="histSheet"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM NAV (mobile) ============ -->
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <button class="bn-tab active" data-screen="builder" aria-label="Builder"><i data-lucide="wand-2"></i><span>Builder</span></button>
+    <button class="bn-tab" data-screen="presets" aria-label="Presets"><i data-lucide="bookmark"></i><span>Presets</span></button>
+    <button class="bn-tab" data-screen="guide" aria-label="Guide"><i data-lucide="book-open"></i><span>Guide</span></button>
+  </nav>
+
+  <!-- ============ PWA INSTALL BANNER ============ -->
+  <div id="install-banner" role="dialog" aria-label="Install app">
+    <div class="install-banner-top">
+      <img class="install-banner-icon" src="./icons/icon-192.png" width="44" height="44" alt="JJ Prompts app icon">
+      <div class="install-banner-text">
+        <h4>Add to Home Screen</h4>
+        <p>Install for offline access &amp; faster launch.</p>
+      </div>
+      <button class="install-banner-close" id="banner-close" aria-label="Dismiss"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    </div>
+    <div class="install-banner-actions">
+      <button class="install-btn-primary" id="banner-install">Install App</button>
+      <button class="install-btn-ghost" id="banner-later">Not now</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+  (function () {
+    "use strict";
+    function $(id){ return document.getElementById(id); }
+    function renderIcons(){ if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); }
+    function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+    function lcf(s){ return s ? s.charAt(0).toLowerCase()+s.slice(1) : s; }
+    function ucf(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+    function aan(s){ return /^[aeiou]/i.test(s) ? "an" : "a"; }
+    function isMobile(){ return window.matchMedia("(max-width: 767px)").matches; }
+
+    /* ---------- OPTIONS ---------- */
+    var OPTIONS = {
+      productType:{ph:"Select type",items:["Junk journal page","Digital paper","Ephemera sheet","Journal tag","Bookmark","Pocket card","Envelope liner","Pocket / folder","Background paper","Postcard","Label sheet","Washi tape design","Sticker sheet"]},
+      subject:{ph:"Select subject",items:["Victorian woman","Edwardian lady","Cottage girl","Mermaid","Fairy","Angel","Witch","Bride","Floral bouquet","Birds on branch","Butterfly cluster","Cat portrait","Fox","Key & lock","Clock & gears","Music sheet","Postage stamps","Old map","Book stack","Candle & roses"]},
+      setting:{ph:"Select setting",items:["Garden","Library","Attic","Forest","Seaside","Paris street","Tea room","Greenhouse","Moonlit night","Misty meadow","Abandoned manor","Cottage kitchen","Vintage market","Botanical study"]},
+      era:{ph:"Select era",items:["Victorian era","Edwardian era","1920s Art Deco","1940s wartime","Medieval","Renaissance","Baroque","Regency era","Belle Époque","Rococo","Timeless vintage"]},
+      basicStyle:{ph:"Select style",items:["Vintage illustration","Digital collage","Mixed media","Scrapbook art","Storybook art","Botanical illustration","Old postcard","Sheet music art","Newspaper clipping","Stamp collection","Tarot card style","Greeting card"]},
+      artStyle:{ph:"Select art style",items:["Watercolor","Ink & wash","Oil painting","Pencil sketch","Gouache","Engraving","Lithograph print","Cross-hatching","Linocut print","Chromolithograph","Copperplate etching","Woodblock print"]},
+      texture:{ph:"Select texture",items:["Aged parchment","Torn edges","Coffee-stained","Foxed paper","Wrinkled linen","Crumpled tissue","Velvet emboss","Gilded edges","Distressed cardstock","Handmade paper"]},
+      vibe:{ph:"Select mood",items:["Nostalgic romantic","Melancholic dreamy","Whimsical magical","Moody gothic","Serene peaceful","Adventurous wanderlust","Mysterious ethereal","Cozy cottage","Dark fairy tale","Soft cottagecore"]},
+      palette:{ph:"Select palette",items:["Muted sepia tones","Dusty rose & sage","Cream & gold","Faded indigo & blush","Forest green & rust","Lavender & ivory","Black & gold","Vintage mustard & teal","Soft grey & burgundy","Pearl & champagne","Earthy terracotta","Midnight blue & silver"]},
+      background:{ph:"Select background",items:["Aged cream background","White background","Transparent background","Soft beige","Warm ivory","Soft grey","No background"]}
+    };
+    var VERSION_OPTS=["--v 6.1","--v 6.0","--v 5.2","--niji 6"];
+    var AR_OPTS=["--ar 1:1","--ar 4:5","--ar 2:3","--ar 3:4","--ar 9:16","--ar 5:7","--ar 4:3","--ar 16:9"];
+    var CONTENT_ORDER=["productType","subject","setting","era","customDetail","basicStyle","artStyle","texture","vibe","palette","customColors","background"];
+    var SECTION_FIELDS={"1":["productType","subject","setting","era","customDetail"],"2":["basicStyle","artStyle","texture","vibe"],"3":["palette","customColors","background"],"4":["version","stylize","ar","styleRaw","tile","exclude"]};
+
+    Object.keys(OPTIONS).forEach(function(id){
+      var c=OPTIONS[id], html='<option value="">'+c.ph+'</option>';
+      c.items.forEach(function(o){ html+='<option value="'+esc(o)+'">'+esc(o)+'</option>'; });
+      $(id).innerHTML=html;
+    });
+    $("version").innerHTML=VERSION_OPTS.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join("");
+    $("ar").innerHTML=AR_OPTS.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join("");
+    $("version").value="--v 6.1"; $("ar").value="--ar 1:1";
+
+    /* ---------- STATE ---------- */
+    var tool="midjourney", loadedOverride=null;
+    function v(id){ var e=$(id); return e?(e.value||"").trim():""; }
+
+    /* ---------- ASSEMBLY ---------- */
+    function buildMidjourney(){
+      var parts=[];
+      CONTENT_ORDER.forEach(function(id){ var val=v(id); if(val) parts.push(val); });
+      var content=parts.join(", ");
+      var params=[$("version").value,"--s "+$("stylize").value,$("ar").value];
+      if($("styleRaw").classList.contains("on")) params.push("--style raw");
+      if($("tile").classList.contains("on")) params.push("--tile");
+      var no=v("exclude"); if(no) params.push("--no "+no);
+      if(!content) return null;
+      return (content+" "+params.join(" ")).replace(/\s*,\s*,\s*/g,", ").replace(/\s{2,}/g," ").replace(/,\s*(?=--)/g,"").trim();
+    }
+    function buildNatural(){
+      var pt=v("productType"),subj=v("subject"),setg=v("setting"),era=v("era"),cd=v("customDetail");
+      var bs=v("basicStyle"),as=v("artStyle"),tex=v("texture"),vibe=v("vibe");
+      var pal=v("palette"),cc=v("customColors"),bg=v("background");
+      if(!(pt||subj||setg||era||cd||bs||as||tex||vibe||pal||cc||bg)) return null;
+      var s=[];
+      var s1="";
+      if(pt) s1="A "+lcf(pt);
+      if(subj) s1+=(s1?" featuring ":"A scene featuring ")+aan(subj)+" "+subj;
+      if(setg){ var sg=lcf(setg); s1+=(s1?" in ":"Set in ")+aan(sg)+" "+sg; }
+      if(era) s1+=(s1?", "+era+" aesthetic":era+" aesthetic");
+      if(cd) s1+=(s1?", "+cd:cd);
+      if(s1) s.push(ucf(s1.trim())+".");
+      var r="";
+      if(bs||as){ var b=[]; if(bs) b.push(lcf(bs)); if(as) b.push(lcf(as)); r="Rendered in "+b.join(", ")+" style"; }
+      if(tex) r+=(r?" with "+lcf(tex)+" texture":"Featuring "+lcf(tex)+" texture");
+      if(r) s.push(ucf(r.trim())+".");
+      if(vibe) s.push(ucf(vibe)+" atmosphere.");
+      var col="";
+      if(pal) col=pal+" color palette";
+      if(cc) col+=(col?" with accents of "+cc:"Color accents of "+cc);
+      if(col) s.push(ucf(col.trim())+".");
+      if(bg) s.push(ucf(lcf(bg))+".");
+      return s.join(" ").replace(/\s{2,}/g," ").replace(/\.\.+/g,".").trim();
+    }
+    function buildCurrent(){ return tool==="midjourney"?buildMidjourney():buildNatural(); }
+    function currentText(){ return loadedOverride!==null?loadedOverride:buildCurrent(); }
+
+    var PH="Your prompt will appear here as you make selections above...";
+    function setTextEl(id,text,empty){ var e=$(id); if(!e) return; e.textContent=text; e.classList.toggle("empty",!!empty); }
+    function applyOutput(p){
+      var empty=!p, full=empty?PH:p;
+      setTextEl("outDesktop",full,empty);
+      setTextEl("outSheet",full,empty);
+      var bar=$("barPreview");
+      bar.textContent=empty?"Tap options above to build...":(p.length>45?p.slice(0,45)+"…":p);
+      bar.classList.toggle("placeholder",empty);
+      ["copyDesktop","copyBar","copySheet"].forEach(function(id){ var b=$(id); if(b) b.disabled=empty; });
+    }
+    var flashT=null;
+    function flashBox(){ var b=$("promptBox"); if(!b) return; b.classList.remove("prompt-flash"); void b.offsetWidth; b.classList.add("prompt-flash"); if(flashT) clearTimeout(flashT); flashT=setTimeout(function(){ b.classList.remove("prompt-flash"); },600); }
+    function updateOutput(flash){ loadedOverride=null; applyOutput(buildCurrent()); if(flash!==false) flashBox(); }
+    function setOutputDirect(text){
+      loadedOverride=text;
+      setTextEl("outDesktop",text,false); setTextEl("outSheet",text,false);
+      var bar=$("barPreview"); bar.textContent=text.length>45?text.slice(0,45)+"…":text; bar.classList.remove("placeholder");
+      ["copyDesktop","copyBar","copySheet"].forEach(function(id){ var b=$(id); if(b) b.disabled=!text; });
+      flashBox();
+    }
+
+    /* ---------- TOOL MODE ---------- */
+    var TOOL_KEY="jj_tool";
+    function setTool(t,toast){
+      tool=t;
+      try{ localStorage.setItem(TOOL_KEY,t); }catch(e){}
+      var mj=t==="midjourney";
+      var btn=$("toolBtn");
+      btn.innerHTML=mj?'<i data-lucide="wand-2"></i><span class="tool-dot"></span>':'<i data-lucide="layers"></i>';
+      btn.classList.toggle("mj",mj);
+      btn.title=mj?"Midjourney":"Other Tools";
+      $("section4").classList.toggle("hidden-sec",!mj);
+      $("toolPill").textContent=mj?"Midjourney":"Other Tools — ChatGPT · Flux · Firefly · DALL-E · Ideogram";
+      $("modeNote").textContent="Copying in "+(mj?"Midjourney":"Other Tools")+" format — change in the toolbar above.";
+      renderIcons();
+      updateOutput(true);
+      renderPresets();
+      if(toast) showToast(mj?"Midjourney mode":"Other Tools mode");
+    }
+    $("toolBtn").addEventListener("click",function(){ setTool(tool==="midjourney"?"other":"midjourney",true); });
+
+    var toastT=null;
+    function showToast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); if(toastT) clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); },2000); }
+
+    /* ---------- INPUTS ---------- */
+    ["productType","subject","setting","era","customDetail","basicStyle","artStyle","texture","vibe","palette","customColors","background","version","ar","exclude"].forEach(function(id){
+      var e=$(id); e.addEventListener("change",function(){ updateOutput(true); }); e.addEventListener("input",function(){ updateOutput(true); });
+    });
+    $("stylize").addEventListener("input",function(){ $("stylizeBadge").textContent="--s "+$("stylize").value; updateOutput(true); });
+    function wireToggle(id){ var t=$(id); t.addEventListener("click",function(){ var on=t.classList.toggle("on"); t.setAttribute("aria-checked",on?"true":"false"); updateOutput(true); }); }
+    wireToggle("styleRaw"); wireToggle("tile");
+
+    /* ---------- ACCORDION ---------- */
+    document.querySelectorAll(".section").forEach(function(sec){
+      sec.querySelector(".acc-head").addEventListener("click",function(e){ if(e.target.closest(".sec-reset")) return; sec.classList.toggle("open"); });
+    });
+
+    /* ---------- RESET ---------- */
+    function resetField(id){
+      var e=$(id);
+      if(id==="version"){ e.value="--v 6.1"; return; }
+      if(id==="ar"){ e.value="--ar 1:1"; return; }
+      if(id==="stylize"){ e.value=300; $("stylizeBadge").textContent="--s 300"; return; }
+      if(id==="styleRaw"||id==="tile"){ e.classList.remove("on"); e.setAttribute("aria-checked","false"); return; }
+      e.value="";
+    }
+    document.querySelectorAll(".sec-reset").forEach(function(b){ b.addEventListener("click",function(e){ e.stopPropagation(); SECTION_FIELDS[b.getAttribute("data-reset")].forEach(resetField); updateOutput(true); }); });
+    function resetAll(){ if(!window.confirm("Reset all fields?")) return; Object.keys(SECTION_FIELDS).forEach(function(s){ SECTION_FIELDS[s].forEach(resetField); }); updateOutput(true); }
+    $("resetDesktop").addEventListener("click",resetAll);
+    $("resetSheet").addEventListener("click",resetAll);
+
+    /* ---------- COPY ---------- */
+    function copyText(text){
+      if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function(){return true;},function(){return fallback(text);});
+      return Promise.resolve(fallback(text));
+    }
+    function fallback(text){ try{ var ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand("copy"); document.body.removeChild(ta); return ok; }catch(e){ return false; } }
+    function wireCopy(id,done){
+      var b=$(id);
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var text=currentText(); if(!text) return;
+        var orig=b.innerHTML;
+        copyText(text).then(function(){ addToHistory(text); b.innerHTML=done; setTimeout(function(){ b.innerHTML=orig; renderIcons(); },2000); });
+      });
+    }
+    wireCopy("copyDesktop",'<span>&#10003; Copied</span>');
+    wireCopy("copySheet",'<span>&#10003; Copied</span>');
+    wireCopy("copyBar",'<span>&#10003;</span>');
+
+    /* ---------- HISTORY ---------- */
+    var HKEY="jj_history";
+    function getHist(){ try{ return JSON.parse(localStorage.getItem(HKEY))||[]; }catch(e){ return []; } }
+    function saveHist(a){ try{ localStorage.setItem(HKEY,JSON.stringify(a)); }catch(e){} }
+    function addToHistory(p){ var a=getHist().filter(function(x){return x!==p;}); a.unshift(p); if(a.length>10) a=a.slice(0,10); saveHist(a); renderHistory(); }
+    function buildHistHtml(){
+      var a=getHist();
+      if(!a.length) return '<div class="hist-empty">Copied prompts will appear here.</div>';
+      var html="";
+      a.forEach(function(p,i){ var t=p.length>55?p.slice(0,55)+"…":p; html+='<div class="hist-item"><span class="hist-text">'+esc(t)+'</span><button class="hist-load" data-h="'+i+'">Load</button></div>'; });
+      return html+'<button class="clear-hist">Clear history</button>';
+    }
+    function renderHistory(){
+      ["histDesktop","histSheet"].forEach(function(cid){
+        var c=$(cid); if(!c) return; c.innerHTML=buildHistHtml();
+        c.querySelectorAll(".hist-load").forEach(function(b){ b.addEventListener("click",function(){ var arr=getHist(); var idx=parseInt(b.getAttribute("data-h"),10); if(arr[idx]) setOutputDirect(arr[idx]); }); });
+        var clr=c.querySelector(".clear-hist"); if(clr) clr.addEventListener("click",function(){ saveHist([]); renderHistory(); });
+      });
+    }
+    $("histHeadDesktop").addEventListener("click",function(){ $("historyDesktop").classList.toggle("open"); });
+    $("histHeadSheet").addEventListener("click",function(){ $("historySheet").classList.toggle("open"); });
+
+    /* ---------- MOBILE SHEET ---------- */
+    function openSheet(){ $("sheetOverlay").classList.add("open"); $("sheet").classList.add("open"); }
+    function closeSheet(){ $("sheetOverlay").classList.remove("open"); $("sheet").classList.remove("open"); $("sheet").style.transform=""; }
+    $("barLeft").addEventListener("click",openSheet);
+    $("sheetClose").addEventListener("click",closeSheet);
+    $("sheetOverlay").addEventListener("click",closeSheet);
+    // swipe-down on the head area
+    var dragY=null;
+    var head=$("sheetHead"), sheetEl=$("sheet");
+    head.addEventListener("touchstart",function(e){ dragY=e.touches[0].clientY; },{passive:true});
+    head.addEventListener("touchmove",function(e){ if(dragY===null) return; var dy=e.touches[0].clientY-dragY; if(dy>0){ sheetEl.style.transition="none"; sheetEl.style.transform="translateY("+dy+"px)"; } },{passive:true});
+    head.addEventListener("touchend",function(e){ if(dragY===null) return; var dy=e.changedTouches[0].clientY-dragY; sheetEl.style.transition=""; dragY=null; if(dy>120) closeSheet(); else sheetEl.style.transform=""; });
+
+    /* ---------- SCREEN NAV ---------- */
+    function showScreen(name){
+      document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+      var t=$("screen-"+name); if(t) t.classList.add("active");
+      document.querySelectorAll(".subnav a").forEach(function(a){ a.classList.toggle("active",a.getAttribute("data-screen")===name); });
+      document.querySelectorAll(".bn-tab").forEach(function(b){ b.classList.toggle("active",b.getAttribute("data-screen")===name); });
+      // sticky bar only relevant on builder
+      $("stickyBar").style.display = (name==="builder") ? "" : "none";
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+    document.querySelectorAll("[data-screen]").forEach(function(el){ el.addEventListener("click",function(e){ e.preventDefault(); showScreen(el.getAttribute("data-screen")); }); });
+
+    /* ---------- PRESETS ---------- */
+    var PRESETS=[
+      {name:"Victorian Woman Page",cat:"Journal Pages",prompt:"Junk journal page, Victorian woman in garden, vintage illustration, watercolor, aged parchment texture, muted sepia tones, nostalgic romantic, aged cream background --v 6.1 --s 300 --ar 4:5"},
+      {name:"Botanical Study Page",cat:"Journal Pages",prompt:"Junk journal page, detailed botanical illustration, pressed flowers and leaves, handwritten labels, engraving style, ink & wash, cream & gold palette, Belle Époque era, soft beige background --v 6.1 --s 400 --ar 4:5"},
+      {name:"Moonlit Fairy Page",cat:"Journal Pages",prompt:"Junk journal page, ethereal fairy in moonlit forest, storybook art, watercolor, soft lavender & ivory, whimsical magical vibe, Renaissance era, aged cream background --v 6.1 --s 500 --ar 4:5"},
+      {name:"Music & Roses Page",cat:"Journal Pages",prompt:"Junk journal page, music sheet background, roses and keys, Victorian era, mixed media collage, dusty rose & sage palette, nostalgic, aged parchment --v 6.1 --s 300"},
+      {name:"Paris Street Scene",cat:"Journal Pages",prompt:"Junk journal page, Edwardian lady on Paris street, old postcard style, lithograph print, cream & gold, Belle Époque, soft beige background --v 6.1 --s 300 --ar 4:5"},
+      {name:"Vintage Tag Set",cat:"Ephemera & Tags",prompt:"Journal tags, blank badges, Victorian era, distressed cardstock, sepia & gold, engraving style, vintage illustration, white background --v 6.1 --s 200"},
+      {name:"Postage Stamp Sheet",cat:"Ephemera & Tags",prompt:"Postage stamps, set of 6, botanical motifs, Edwardian era, chromolithograph, muted earth tones, white background --v 6.1 --s 300"},
+      {name:"Pocket Card Set",cat:"Ephemera & Tags",prompt:"Pocket cards, 3x4 inch, cottage girl with flowers, watercolor, soft pastels, cottagecore vibe, white background --v 6.1 --s 400"},
+      {name:"Wax Seal Ephemera",cat:"Ephemera & Tags",prompt:"Ephemera sheet, wax seals, ribbon, lace and keys, mixed media, cream & burgundy, nostalgic romantic, aged parchment --v 6.1 --s 300"},
+      {name:"Vintage Floral Pattern",cat:"Digital Papers",prompt:"Digital paper, seamless floral pattern, English garden roses, Victorian era, chromolithograph, dusty rose & sage, aged paper texture --v 6.1 --s 300 --tile"},
+      {name:"Gothic Lace Pattern",cat:"Digital Papers",prompt:"Digital paper, gothic lace pattern, dark floral vines, subtle handwriting texture, black & gold, moody gothic vibe, aged paper --v 6.1 --s 400 --tile"},
+      {name:"Antique Map Paper",cat:"Digital Papers",prompt:"Digital paper, antique map fragments, compass roses, aged parchment, sepia & rust, explorer aesthetic, subtle handwriting, watercolor --v 6.1 --s 300 --tile"},
+      {name:"Butterfly & Botanicals",cat:"Digital Papers",prompt:"Digital paper, butterfly collection with pressed botanicals, encyclopedia illustration style, ink & wash, pearl & champagne, aged beige background --v 6.1 --s 400"},
+      {name:"Cottage Core Florals",cat:"Digital Papers",prompt:"Digital paper, wildflowers and herbs, cottagecore aesthetic, soft watercolor, sage & blush, handmade paper texture --v 6.1 --s 300 --tile"},
+      {name:"Tarot Style Bookmark",cat:"Bookmarks",prompt:"Bookmark, tarot card design, mystical eye and moon phases, art nouveau border, emerald & gold, ornate, watercolor, aged cream --v 6.1 --s 400 --ar 2:7"},
+      {name:"Floral Pocket",cat:"Bookmarks",prompt:"Junk journal pocket, envelope shape, vintage roses, Edwardian era, watercolor illustration, dusty rose & cream, aged torn edges --v 6.1 --s 300 --ar 3:4"}
+    ];
+    var BADGE={"Journal Pages":"badge-jp","Ephemera & Tags":"badge-eph","Digital Papers":"badge-dig","Bookmarks":"badge-bkm"};
+    function fmtPreset(p,t){ if(t==="midjourney") return p; var i=p.indexOf(" --"); return (i>=0?p.slice(0,i):p).trim(); }
+    var curCat="All";
+    function renderPresets(){
+      var q=$("presetSearch").value.trim().toLowerCase(), grid=$("presetGrid");
+      var list=PRESETS.filter(function(p){ var c=curCat==="All"||p.cat===curCat; var s=!q||p.name.toLowerCase().indexOf(q)>-1||p.prompt.toLowerCase().indexOf(q)>-1; return c&&s; });
+      if(!list.length){ grid.innerHTML=""; $("presetEmpty").classList.remove("hidden"); return; }
+      $("presetEmpty").classList.add("hidden");
+      grid.innerHTML=list.map(function(p){
+        var idx=PRESETS.indexOf(p), f=fmtPreset(p.prompt,tool), prev=f.length>90?f.slice(0,90)+"…":f;
+        return '<div class="preset-card"><div class="preset-top"><span class="preset-name">'+esc(p.name)+'</span><span class="badge '+BADGE[p.cat]+'">'+esc(p.cat)+'</span></div>'+
+          '<div class="preset-preview">'+esc(prev)+'</div>'+
+          '<div class="preset-foot"><button class="btn btn-ghost btn-sm preset-copy" data-idx="'+idx+'">Copy</button>'+
+          '<button class="btn btn-primary btn-sm preset-load" data-idx="'+idx+'">Load into Builder →</button></div></div>';
+      }).join("");
+      grid.querySelectorAll(".preset-copy").forEach(function(b){ b.addEventListener("click",function(){ var p=PRESETS[parseInt(b.getAttribute("data-idx"),10)]; copyText(fmtPreset(p.prompt,tool)).then(function(){ b.textContent="✓ Copied"; setTimeout(function(){ b.textContent="Copy"; },1500); }); }); });
+      grid.querySelectorAll(".preset-load").forEach(function(b){ b.addEventListener("click",function(){ var p=PRESETS[parseInt(b.getAttribute("data-idx"),10)]; showScreen("builder"); setOutputDirect(fmtPreset(p.prompt,tool)); if(isMobile()) openSheet(); showInfo(); }); });
+    }
+    document.querySelectorAll(".cat-tab").forEach(function(tab){ tab.addEventListener("click",function(){ document.querySelectorAll(".cat-tab").forEach(function(t){ t.classList.remove("active"); }); tab.classList.add("active"); curCat=tab.getAttribute("data-cat").replace(/&amp;/g,"&"); renderPresets(); }); });
+    $("presetSearch").addEventListener("input",renderPresets);
+
+    var infoT=null;
+    function showInfo(){ var b=$("infoBanner"); b.classList.add("show"); if(infoT) clearTimeout(infoT); infoT=setTimeout(function(){ b.classList.remove("show"); },4000); }
+    $("infoClose").addEventListener("click",function(){ $("infoBanner").classList.remove("show"); });
+
+    /* ---------- STYLE GUIDE ---------- */
+    var ART=[["Watercolor","Soft bleed edges, translucent layers. Best for florals, portraits, dreamscapes."],["Ink & wash","Crisp outlines with soft ink washes. Botanical illustrations, pen portraits."],["Chromolithograph","Rich saturated vintage print. Retro labels, botanical prints."],["Engraving","Fine crosshatch lines, book-illustration feel. Maps, portraits."],["Lithograph print","Flat color areas, poster-like. Old ads, sheet music covers."],["Gouache","Opaque matte paint. Bright solid colors. Storybook, folklore."],["Woodblock print","Bold outlines, limited flat colors, handmade feel."],["Pencil sketch","Light hand-drawn feel. Loose or tight. Botanical studies."],["Copperplate","Delicate intricate engraving. Fine lines. Old certificates."],["Cross-hatching","Dense linework, dramatic shadow. Moody, dark themes."],["Oil painting","Rich textured. Dramatic portraits, romanticist still life."],["Linocut print","Bold graphic block print. Earthy, folk art feel."]];
+    var PALS=[["Muted sepia tones",["#C4A882","#8B6344","#F5EDD8"],"Browns and creams. Works for everything."],["Dusty rose & sage",["#C47B7B","#8BA888","#F0E4D4"],"Feminine, cottage feel. Florals, portraits."],["Cream & gold",["#F5EDD8","#C9953C","#8B7355"],"Elegant luxury vintage. Tags, bookmarks."],["Black & gold",["#1A1209","#C9953C","#8B6344"],"Gothic, dramatic. Dark journals."],["Midnight blue",["#1A2440","#8BA8C4","#C4CBDB"],"Celestial, moonlit, mysterious."],["Forest green & rust",["#4A6741","#A85C3C","#C4A882"],"Earthy, autumnal. Botanical, woodland."],["Lavender & ivory",["#9B8AC4","#F5EDD8","#C4B8DB"],"Soft, romantic. Fairy, cottage."],["Faded indigo & blush",["#5C6896","#C47B7B","#E4D4D4"],"Moody pastel. Portraits, pressed flowers."],["Pearl & champagne",["#E8E0D0","#D4C4A8","#B8A898"],"Ultra soft, feminine. Delicate florals."],["Earthy terracotta",["#A85C3C","#C4A882","#8B6344"],"Warm, grounded. Mediterranean, rustic."],["Vintage mustard/teal",["#C4953C","#3C8B8B","#F5EDD8"],"Retro bold. Art Deco, travel posters."],["Soft grey & burgundy",["#A8A0A0","#8B3C3C","#F5EDD8"],"Understated elegance. Victorian gothic."]];
+    var MOODS=[["Nostalgic romantic","Warm memory feeling. Portraits, love letters, keepsakes."],["Moody gothic","Dark atmosphere. Ruins, ravens, candles, bare trees."],["Whimsical magical","Playful enchantment. Fairies, mushrooms, fantasy flora."],["Soft cottagecore","Cozy rural life. Herbs, bread, kittens, simple pleasures."],["Mysterious ethereal","Otherworldly muted. Ghosts, fog, old mirrors, moonlight."],["Melancholic dreamy","Sad beauty. Abandoned places, wilting flowers, old letters."],["Serene peaceful","Calm quiet beauty. Still waters, morning light, open fields."],["Adventurous wanderlust","Old maps, globes, compass roses, travel journals, ships."],["Dark fairy tale","Brothers Grimm. Deep forest, shadows, enchantment."],["Cozy cottage","Warm firelight, bookshelves, rain, tea and candles."]];
+    var TIPS=[["Use --tile for pattern papers","Add --tile to any digital paper prompt for seamlessly repeating patterns."],["Combine two art styles","\"Watercolor, engraving style\" creates beautiful hybrid results. Try: chromolithograph + watercolor, or gouache + woodblock print."],["Always specify paper texture","\"Aged parchment\" or \"handmade paper\" grounds every design authentically."],["White bg for cut elements","Use \"white background\" for ephemera to cut out. Use \"transparent background\" for PNG exports."],["Stylize 300–500 is the sweet spot","Lower (100–200): faithful to prompt. Higher (700–1000): more artistic."],["--style raw for accuracy","Forces Midjourney to follow your prompt closely."],["Aspect ratio quick guide","1:1 square · 4:5 journal page · 2:3 tall bookmark · 9:16 vertical paper"],["Use variation buttons in Midjourney","After a good result, use V1–V4 instead of re-prompting for consistency."]];
+    function renderGuide(){
+      $("paneStyles").innerHTML=ART.map(function(r){ return '<div class="grow"><span class="gname">'+esc(r[0])+'</span><span class="garrow">→</span><span class="gdesc">'+esc(r[1])+'</span></div>'; }).join("");
+      $("panePalettes").innerHTML='<div class="palette-grid">'+PALS.map(function(r){ var d=r[1].map(function(c){return '<span class="pal-dot" style="background:'+c+'"></span>';}).join(""); return '<div class="pal-card"><div class="pal-dots">'+d+'</div><div class="pal-name">'+esc(r[0])+'</div><div class="pal-desc">'+esc(r[2])+'</div></div>'; }).join("")+'</div>';
+      $("paneMoods").innerHTML=MOODS.map(function(r){ return '<div class="grow"><span class="gname">'+esc(r[0])+'</span><span class="garrow">→</span><span class="gdesc">'+esc(r[1])+'</span></div>'; }).join("");
+      $("paneTips").innerHTML=TIPS.map(function(r,i){ return '<div class="tip-card"><span class="tip-num">'+(i+1)+'</span><div><div class="tip-title">'+esc(r[0])+'</div><div class="tip-desc">'+esc(r[1])+'</div></div></div>'; }).join("");
+    }
+    document.querySelectorAll(".guide-tab").forEach(function(tab){ tab.addEventListener("click",function(){ document.querySelectorAll(".guide-tab").forEach(function(t){ t.classList.remove("active"); }); tab.classList.add("active"); var p=tab.getAttribute("data-pane"); $("paneStyles").classList.toggle("active",p==="styles"); $("panePalettes").classList.toggle("active",p==="palettes"); $("paneMoods").classList.toggle("active",p==="moods"); $("paneTips").classList.toggle("active",p==="tips"); }); });
+
+    /* ---------- THEME ---------- */
+    var THEME_KEY="jj_theme";
+    function setTheme(theme){
+      document.documentElement.setAttribute("data-theme",theme);
+      $("themeBtn").innerHTML='<i data-lucide="'+(theme==="dark"?"moon":"sun")+'"></i>';
+      var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content",theme==="dark"?"#111110":"#FAFAF8");
+      renderIcons();
+      try{ localStorage.setItem(THEME_KEY,theme); }catch(e){}
+    }
+    var savedTheme="light";
+    try{ savedTheme=localStorage.getItem(THEME_KEY)||"light"; }catch(e){}
+    setTheme(savedTheme);
+    $("themeBtn").addEventListener("click",function(){ setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark"); });
+
+    /* ---------- BOOT ---------- */
+    var savedTool="midjourney";
+    try{ savedTool=localStorage.getItem(TOOL_KEY)||"midjourney"; }catch(e){}
+    renderPresets();
+    renderGuide();
+    renderHistory();
+    setTool(savedTool,false);
+    showScreen("builder");
+    updateOutput(false);
+    renderIcons();
+  })();
+  </script>
+
+  <!--
+    PWA: to test locally serve via http(s), not file://  →  python -m http.server 8000
+    DevTools → Application → Manifest / Service Workers.
+  -->
+  <script>
+  (function () {
+    "use strict";
+    function $(id){ return document.getElementById(id); }
+
+    /* ── SERVICE WORKER ── */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').then(function (reg) {
+          reg.addEventListener('updatefound', function () {
+            var nw = reg.installing; if (!nw) return;
+            nw.addEventListener('statechange', function () {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBar();
+            });
+          });
+        }).catch(function (e) { console.log('SW registration failed:', e); });
+      });
+    }
+    function showUpdateBar(){
+      if ($('jj-update-bar')) return;
+      var bar=document.createElement('div'); bar.id='jj-update-bar';
+      bar.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:9998;background:var(--accent-dim);border-bottom:1px solid var(--border-focus);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-family:Inter,sans-serif;font-size:12px;color:var(--accent-text);';
+      bar.innerHTML='<span>A new version is available.</span><button onclick="window.location.reload()" style="background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;">Refresh</button>';
+      document.body.appendChild(bar);
+    }
+
+    /* ── INSTALL BANNER ── */
+    var deferred=null, banner=$('install-banner');
+    window.addEventListener('beforeinstallprompt',function(e){
+      e.preventDefault(); deferred=e;
+      var d=localStorage.getItem('jj_install_dismissed');
+      if(d && (Date.now()-parseInt(d,10))/(1000*60*60*24) < 7) return;
+      setTimeout(showBanner,3000);
+    });
+    function showBanner(){ if(!banner) return; banner.style.display='flex'; requestAnimationFrame(function(){ banner.classList.add('visible'); if(window.lucide) window.lucide.createIcons(); }); }
+    function hideBanner(remember){ if(!banner) return; banner.classList.remove('visible'); setTimeout(function(){ banner.style.display='none'; },300); if(remember) localStorage.setItem('jj_install_dismissed',Date.now().toString()); }
+    var bi=$('banner-install'); if(bi) bi.addEventListener('click',function(){ if(!deferred) return; hideBanner(false); deferred.prompt(); deferred.userChoice.then(function(c){ if(c&&c.outcome==='accepted') localStorage.setItem('jj_installed','true'); deferred=null; }); });
+    var bc=$('banner-close'); if(bc) bc.addEventListener('click',function(){ hideBanner(true); });
+    var bl=$('banner-later'); if(bl) bl.addEventListener('click',function(){ hideBanner(true); });
+    window.addEventListener('appinstalled',function(){ hideBanner(false); deferred=null; localStorage.setItem('jj_installed','true'); });
+    window.__jjShowInstallBanner=showBanner;
+
+    /* ── iOS INSTRUCTIONS ── */
+    function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+    function standalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+    if (isIOS() && !standalone()) {
+      setTimeout(function(){
+        if (localStorage.getItem('jj_ios_dismissed')) return;
+        var bar=document.createElement('div');
+        bar.style.cssText='position:fixed;bottom:136px;left:12px;right:12px;z-index:9999;background:var(--bg-2);border:1px solid var(--border-focus);border-radius:var(--radius-lg);padding:16px;font-family:Inter,sans-serif;font-size:12px;color:var(--text-2);line-height:1.6;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+        bar.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><span style="font-size:13px;font-weight:500;color:var(--text-1);">Install on iPhone / iPad</span><button id="ios-close" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 0 0 8px;">×</button></div><div style="display:flex;gap:8px;margin-bottom:8px;"><span>1.</span><span>Tap the <strong style="color:var(--text-1)">Share</strong> button <span>⬆</span> in your toolbar</span></div><div style="display:flex;gap:8px;"><span>2.</span><span>Tap <strong style="color:var(--text-1)">"Add to Home Screen"</strong> then <strong style="color:var(--text-1)">Add</strong></span></div>';
+        document.body.appendChild(bar);
+        document.getElementById('ios-close').addEventListener('click',function(){ bar.remove(); localStorage.setItem('jj_ios_dismissed',Date.now().toString()); });
+      },4000);
+    }
+  })();
+  </script>
+</body>
+</html>
